@@ -44,4 +44,6 @@ class GameData(TypedDict):
     """武器子弹是否可用"""
     items: Items
     """所有道具"""
+    eneny_items: Items
+    """敌人所有道具"""
     one_choice: Choices

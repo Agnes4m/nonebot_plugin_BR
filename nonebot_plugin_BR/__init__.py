@@ -1,6 +1,6 @@
 from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 
-from __main__ import *  # noqa: F403
+from __main__ import br_help, br_start  # noqa: F401
 
 from .config import ConfigModel
 

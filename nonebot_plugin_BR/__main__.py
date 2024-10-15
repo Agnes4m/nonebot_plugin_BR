@@ -14,9 +14,22 @@ from nonebot_plugin_uninfo import Session, UniSession
 from .config import config
 from .model import GameData
 
+br_help = on_command(
+    "br help",
+    aliases={"BR HELP", "Br Help"},
+    priority=2,
+    block=True,
+)
+
+
+@br_help.handle()
+async def _(matcher: Matcher):
+    await matcher.finish("to do")
+
+
 br_start = on_command(
-    "br",
-    aliases={"BR", "恶魔轮盘赌", "恶魔轮盘"},
+    "br开始",
+    aliases={"BR开始", "Br开始"},
     priority=2,
     block=True,
 )
