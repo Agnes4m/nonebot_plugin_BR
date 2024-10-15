@@ -1,0 +1,40 @@
+[project]
+name = "nonebot_plugin_BR"
+version = "0.0.1"
+description = "基于nonebot2框架的插件，实现交互游戏恶魔轮盘赌"
+authors = [{ name = "Agnes_Digital", email = "Z735803792@163.com" }]
+homepage = "https://github.com/Agnes4m/nonebot_plugin_BR"
+repository = "https://github.com/Agnes4m/nonebot_plugin_BR"
+requires-python = ">=3.9,<4.0"
+keywords = ["game", "nonebot2", "plugin"]
+dependencies = [
+    "nonebot2>=2.0.0",
+    "nonebot-plugin-uninfo>=0.4.1",
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+
+]
+include = [
+    "LICENSE","README.md"
+]
+readme = "README.md"
+license = { text = "MIT" }
+
+ 
+[project.urls]
+homepage = "https://github.com/Agnes4m/nonebot_plugin_BR"
+
+[tool.pdm.build]
+includes = []
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
