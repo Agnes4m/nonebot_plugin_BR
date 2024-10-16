@@ -27,9 +27,11 @@ class Choices(TypedDict):
 class GameData(TypedDict):
     """总数据"""
 
-    game_id: str
+    is_start: bool
+    player_id: str
+    player_id2: str
     player_name: str
-    """玩家名称"""
+    player_name2: str
     round_num: int
     """当前行动回合"""
     round_self: bool
@@ -47,3 +49,24 @@ class GameData(TypedDict):
     eneny_items: Items
     """敌人所有道具"""
     one_choice: Choices
+
+
+class StateDecide(TypedDict):
+    """状态决策"""
+
+    msg: str
+    """输出信息"""
+    is_finish: bool
+    """是否结束游戏"""
+    bullet: bool
+    """是否换子弹"""
+    weapon: int
+    """新增道具数量"""
+
+
+class PlayerSession(TypedDict):
+    """玩家会话"""
+
+    player_id: str
+    player_name: str
+    session_uid: str

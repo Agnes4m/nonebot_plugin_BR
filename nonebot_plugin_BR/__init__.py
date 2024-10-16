@@ -1,8 +1,13 @@
+from nonebot import require
 from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 
-from __main__ import br_help, br_start  # noqa: F401
+require("nonebot_plugin_uninfo")
+require("nonebot_plugin_alconna")
+require("nonebot_plugin_waiter")
+require("nonebot_plugin_session")
 
-from .config import ConfigModel
+from . import __main__ as __main__  # noqa: E402
+from .config import ConfigModel  # noqa: E402
 
 __version__ = "0.0.1"
 __plugin_meta__ = PluginMetadata(
