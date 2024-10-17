@@ -6,6 +6,7 @@ from nonebot.adapters import Event, Message
 from nonebot.log import logger
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg
+from nonebot.permission import SUPERUSER
 from nonebot_plugin_session import EventSession, SessionIdType
 from nonebot_plugin_uninfo import Session, UniSession
 from nonebot_plugin_waiter import prompt
@@ -73,7 +74,9 @@ async def _(
         else:
             # 只有一个人
             await matcher.send(
-                f"玩家 {session_id.user.nick or session_id.user.name} 加入游戏, 游戏开始.\n请发送“开枪”来执行游戏操作",
+                f"""玩家 {session_id.user.nick or session_id.user.name} 加入游戏,游戏开始.
+第一枪前发送“br调整血量”可修改双方的血量
+请先手发送“开枪”来执行游戏操作""",
             )
             game_data["player_id2"] = player_id
             game_data["player_name2"] = session_id.user.nick or session_id.user.name
@@ -122,7 +125,7 @@ async def _(
     args: Message = CommandArg(),
 ):
     logger.info("[br]正在执行开枪指令")
-    player_id = event.get_session_id()
+    player_id = event.get_user_id()
     session_uid = session.get_id(SessionIdType.GROUP)
     game_data = await LocalData.read_data(session_uid)
 
@@ -131,6 +134,7 @@ async def _(
 
     # 首次攻击判定
     if not game_data["is_start"]:
+        logger.info("[br]开始游戏,先手为player1")
         await matcher.send(f"{game_data['player_name']}发动偷袭,开始游戏")
         if player_id == game_data["player_id2"]:
             game_data["player_id"], game_data["player_id2"] = (
@@ -139,11 +143,14 @@ async def _(
             )
         game_data["is_start"] = True
         await LocalData.save_data(session_uid, game_data)
+
     # 判断是否是自己回合
+    logger.info(game_data["round_self"])
+    logger.info(player_id == game_data["player_id2"])
     if game_data["round_self"] and player_id == game_data["player_id2"]:
-        await matcher.finish(f"现在是{game_data['player_name']}的回合")
+        await matcher.finish(f"现在是{game_data['player_name2']}的回合\n请等待对手行动")
     if not game_data["round_self"] and player_id == game_data["player_id"]:
-        await matcher.finish(f"现在是{game_data['player_name2']}的回合")
+        await matcher.finish(f"现在是{game_data['player_name']}的回合\n请等待对手行动")
 
     if args.extract_plain_text() not in ["1", "2"]:
         resp = await prompt("请输入攻击目标,1为对方,2为自己", timeout=120)
@@ -160,6 +167,10 @@ async def _(
     obj = obj.strip()
     logger.info(f"[br]正在执行开枪指令,对象为:{obj}")
 
+    # 判断枪有没有子弹
+    if_reload, out_msg = await Game.check_weapon(game_data, session_uid)
+    if if_reload:
+        await matcher.send(out_msg)
     if obj == "2":
         game_data, out_msg = await Game.start(game_data, True)  # noqa: FBT003
     else:
@@ -170,17 +181,61 @@ async def _(
     # 状态判定
     state_data = await Game.state(game_data)
     out_msg = state_data["msg"]
-    out_msg += f"""
-    自己:
-    刀{game_data["items"]["knife"]}, 手铐{game_data["items"]["handcuffs"]}, 香烟{game_data["items"]["cigarettes"]}, 放大镜{game_data["items"]["glass"]}, 饮料{game_data["items"]["drink"]}
-    敌人:
-    刀{game_data["eneny_items"]["knife"]}, 手铐{game_data["eneny_items"]["handcuffs"]}, 香烟{game_data["eneny_items"]["cigarettes"]}, 放大镜{game_data["eneny_items"]["glass"]}, 饮料{game_data["eneny_items"]["drink"]}
-    """
 
     if state_data["is_finish"]:
         # 游戏结束
         await LocalData.delete_data(session_uid)
         await matcher.finish(out_msg)
 
-    await LocalData.save_data(player_id, game_data)
+    await LocalData.save_data(session_uid, game_data)
     await matcher.finish(out_msg)
+
+
+swich_life = on_command("br设置血量", rule=game_rule)
+
+
+@swich_life.handle()
+async def _(
+    ev: Event,
+    matcher: Matcher,
+    session: EventSession,
+    args: Message = CommandArg(),
+):
+    logger.info("[br]正在设置血量指令")
+    player_id = ev.get_user_id()
+    session_uid = session.get_id(SessionIdType.GROUP)
+    game_data = await LocalData.read_data(session_uid)
+    if player_id != game_data["player_id"] and player_id != game_data["player_id2"]:
+        await matcher.finish("你不是游戏中的玩家")
+    if not game_data["is_start"]:
+        await matcher.finish("游戏已开始,请勿修改血量")
+    lives = args.extract_plain_text()
+    if lives.isdigit():
+        await matcher.finish("血量必须为数字")
+    lives = int(lives)
+    if lives < 0 or lives > 8:
+        await matcher.finish("血量范围为1-8")
+    await LocalData.switch_life(game_data, session_uid, int())
+    logger.info(f"[br]血量已设置为{lives}")
+    await matcher.finish(f"血量已设置为{lives}")
+
+
+game_end = on_command("结束游戏", rule=game_rule)
+game_super = on_command("结束游戏", permission=SUPERUSER)
+
+
+@game_super.handle()
+@game_end.handle()
+async def _(
+    matcher: Matcher,
+    session: EventSession,
+):
+    logger.info("[br]正在结束游戏指令")
+    # player_id = ev.get_user_id()
+    session_uid = session.get_id(SessionIdType.GROUP)
+    # game_data = await LocalData.read_data(session_uid)
+
+    # 结束游戏并清理玩家
+    game_players[:] = [one for one in game_players if one["session_uid"] != session_uid]
+    await LocalData.delete_data(session_uid)
+    await matcher.finish("游戏结束")
