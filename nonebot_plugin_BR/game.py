@@ -16,9 +16,9 @@ class Game:
         """开枪判定"""
         reround = False
         if game_data["round_self"]:
-            msg = f"{game_data['player_name2']}开枪了!"
-        else:
             msg = f"{game_data['player_name']}开枪了!"
+        else:
+            msg = f"{game_data['player_name2']}开枪了!"
         damage = game_data["one_choice"]["damage"] if game_data["weapon_if"][0] else 0
         if shut_self:
             msg += "目标是自己。"
@@ -101,7 +101,8 @@ class Game:
                 "msg"
             ] += f"""
 🔫当前子弹数: {game_data['weapon_all']}
-实弹数: {sum(game_data['weapon_if'])}"""
+实弹数: {sum(game_data['weapon_if'])}
+"""
             out_data["bullet"] = False
 
         # 判断道具生成
