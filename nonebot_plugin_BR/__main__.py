@@ -14,6 +14,7 @@ from nonebot_plugin_waiter import prompt
 from .config import config
 from .game import Game, LocalData
 from .model import GameData, PlayerSession
+from .weapon import Weapon
 
 game_players = cast(list[PlayerSession], [])
 
@@ -75,7 +76,7 @@ async def _(
             # 只有一个人
             await matcher.send(
                 f"""玩家 {session_id.user.nick or session_id.user.name} 加入游戏,游戏开始.
-第一枪前发送“br调整血量”可修改双方的血量
+第一枪前发送“br设置血量”可修改双方的血量
 请先手发送“开枪”来执行游戏操作""",
             )
             game_data["player_id2"] = player_id
@@ -98,13 +99,23 @@ async def _(
         game_data = await LocalData.new_data(player_id, session_id)
         await LocalData.save_data(session_uid, game_data)
         await matcher.send(
-            f"玩家 {session_id.user.name} 发起了恶魔轮盘赌游戏!\n请等待另外一个用户加入游戏",
+            f"玩家 {session_id.user.name} 发起了恶魔轮盘游戏!\n请等待另外一个用户加入游戏",
         )
-
+        game_players.append(
+            cast(
+                PlayerSession,
+                {
+                    "player_id": player_id,
+                    "player_name": session_id.user.nick or session_id.user.name,
+                    "session_uid": session_uid,
+                },
+            ),
+        )
     game_data = cast(GameData, game_data)
 
 
 async def game_rule(event: Event, session: EventSession):  # noqa: RUF029
+    # logger.info(game_players)
     for one in game_players:
         if (
             event.get_user_id() == one["player_id"]
@@ -148,9 +159,9 @@ async def _(
     logger.info(game_data["round_self"])
     logger.info(player_id == game_data["player_id2"])
     if game_data["round_self"] and player_id == game_data["player_id2"]:
-        await matcher.finish(f"现在是{game_data['player_name2']}的回合\n请等待对手行动")
-    if not game_data["round_self"] and player_id == game_data["player_id"]:
         await matcher.finish(f"现在是{game_data['player_name']}的回合\n请等待对手行动")
+    if not game_data["round_self"] and player_id == game_data["player_id"]:
+        await matcher.finish(f"现在是{game_data['player_name2']}的回合\n请等待对手行动")
 
     if args.extract_plain_text() not in ["1", "2"]:
         resp = await prompt("请输入攻击目标,1为对方,2为自己", timeout=120)
@@ -207,17 +218,54 @@ async def _(
     game_data = await LocalData.read_data(session_uid)
     if player_id != game_data["player_id"] and player_id != game_data["player_id2"]:
         await matcher.finish("你不是游戏中的玩家")
-    if not game_data["is_start"]:
+    if game_data["is_start"]:
         await matcher.finish("游戏已开始,请勿修改血量")
     lives = args.extract_plain_text()
-    if lives.isdigit():
+    if not lives.isdigit():
         await matcher.finish("血量必须为数字")
     lives = int(lives)
     if lives < 0 or lives > 8:
         await matcher.finish("血量范围为1-8")
-    await LocalData.switch_life(game_data, session_uid, int())
+    await LocalData.switch_life(game_data, session_uid, lives)
     logger.info(f"[br]血量已设置为{lives}")
     await matcher.finish(f"血量已设置为{lives}")
+
+
+uss_itme = on_command("使用", rule=game_rule)
+
+
+@uss_itme.handle()
+async def _(
+    matcher: Matcher,
+    session: EventSession,
+    args: Message = CommandArg(),
+):
+    logger.info("[br]正在使用道具指令")
+    txt = args.extract_plain_text().strip()
+    if "刀" in txt:
+        game_data = await LocalData.read_data(session.get_id(SessionIdType.GROUP))
+        game_data = await Weapon.use_knife(game_data)
+        await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
+        await matcher.finish("刀已使用")
+    if "手铐" in txt:
+        game_data = await LocalData.read_data(session.get_id(SessionIdType.GROUP))
+        game_data = await Weapon.use_handcuffs(game_data)
+        await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
+        await matcher.finish("手铐已使用")
+    if "香烟" in txt:
+        game_data = await LocalData.read_data(session.get_id(SessionIdType.GROUP))
+        game_data = await Weapon.use_cigarettes(game_data)
+        await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
+        await matcher.finish("香烟已使用")
+    if "放大镜" in txt:
+        game_data = await LocalData.read_data(session.get_id(SessionIdType.GROUP))
+        game_data, msg = await Weapon.use_glass(game_data)
+        await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
+        if msg:
+            await matcher.finish("放大镜已使用,是实弹")
+        if not msg:
+            await matcher.finish("放大镜已使用,是空弹")
+    await matcher.finish("无效道具")
 
 
 game_end = on_command("结束游戏", rule=game_rule)
@@ -238,4 +286,4 @@ async def _(
     # 结束游戏并清理玩家
     game_players[:] = [one for one in game_players if one["session_uid"] != session_uid]
     await LocalData.delete_data(session_uid)
-    await matcher.finish("游戏结束")
+    await matcher.finish("恶魔轮盘已游戏结束")

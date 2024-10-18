@@ -21,7 +21,8 @@ class Choices(TypedDict):
 
     damage: int
     """当前伤害"""
-    skip: bool
+    skip: int
+    """默认0,1则跳过玩家1回合"""
 
 
 class GameData(TypedDict):

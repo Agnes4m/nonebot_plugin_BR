@@ -3,10 +3,12 @@ import random
 from pathlib import Path
 from typing import Dict, cast
 
+from loguru import logger
 from nonebot_plugin_uninfo import Session
 
 from .config import config
-from .model import Choices, GameData, StateDecide
+from .model import GameData, StateDecide
+from .utils import Format
 
 
 class Game:
@@ -85,9 +87,11 @@ class Game:
         if game_data["weapon_all"] <= 0:
             new_nub = random.randint(2, 8)
             game_data["weapon_all"] = new_nub
-            game_data["weapon_if"] = [
-                random.choice([True, False]) for _ in range(new_nub)
-            ]
+
+            game_data["weapon_if"] = [True, False]
+            if new_nub > 2:
+                game_data["weapon_if"] += random.choices([True, False], k=new_nub - 2)
+            random.shuffle(game_data["weapon_if"])
             out_data[
                 "msg"
             ] += f"""
@@ -126,6 +130,16 @@ class Game:
             out_data["msg"] += f"\n🔫剩余子弹: {game_data['weapon_all']}"
 
             # 生成新道具
+
+            for _ in range(swap_number):
+                # 随机生成道具索引并更新玩家道具
+                await Format.generate_weapon(game_data["items"])
+                await Format.generate_weapon(game_data["eneny_items"])
+
+                # 更新输出信息
+                out_data["msg"] += await Format.format_items_message(game_data)
+                return out_data
+
             new_weapon1 = [random.randint(1, 5) for _ in range(swap_number)]
             for index in new_weapon1:
                 weapon_key = f"weapon{index + 1}"
@@ -141,6 +155,7 @@ class Game:
                 if weapon_key not in game_data["eneny_items"]:
                     game_data["eneny_items"][weapon_key] = 0
                 game_data["eneny_items"][weapon_key] += 1
+            logger.info(f"[br]道具生成,{new_weapon1}{new_weapon2}")
 
             async def creat_item(new_weapon: list[int]):  # noqa: RUF029
                 # 道具生成输出
@@ -162,28 +177,35 @@ class Game:
 
             out_data[
                 "msg"
-            ] += f"""道具新增:
+            ] += f"""
+道具新增:
 {game_data["player_name"]}: {await creat_item(new_weapon1)}
 {game_data["player_name2"]}: {await creat_item(new_weapon2)}
 """
         out_data[
             "msg"
-        ] += f"""当前道具
+        ] += f"""
+当前道具
 {game_data["player_name"]}:刀{game_data["items"]["knife"]}, 手铐{game_data["items"]["handcuffs"]}, 香烟{game_data["items"]["cigarettes"]}, 放大镜{game_data["items"]["glass"]}, 饮料{game_data["items"]["drink"]}
 {game_data["player_name2"]}:刀{game_data["eneny_items"]["knife"]}, 手铐{game_data["eneny_items"]["handcuffs"]}, 香烟{game_data["eneny_items"]["cigarettes"]}, 放大镜{game_data["eneny_items"]["glass"]}, 饮料{game_data["eneny_items"]["drink"]}
         """
+        game_data, msg = await cls.rest_one_choice(game_data)
+        if msg:
+            out_data["msg"] += "\n道具“手铐”已使用,跳过对手回合"
+
         return out_data
 
     @classmethod
     async def rest_one_choice(cls, game_data: GameData):
-        game_data["one_choice"] = cast(
-            Choices,
-            {
-                "damage" == 1,
-                "skip" == False,
-            },
-        )
-        return game_data
+        game_data["one_choice"]["damage"] = 1
+        outmsg = False
+        if (game_data["one_choice"]["skip"] == 1 and game_data["round_self"]) or (
+            game_data["one_choice"]["skip"] == 2 and not game_data["round_self"]
+        ):
+            game_data["round_self"] = not game_data["round_self"]
+            outmsg = True
+
+        return game_data, outmsg
 
     @classmethod
     async def check_weapon(cls, game_data: GameData, session_uid: str):
@@ -216,8 +238,8 @@ class LocalData:
             "player_name2": "",
             "round_num": 1,
             "round_self": True,
-            "lives": 6,
-            "enemy_lives": 6,
+            "lives": 3,
+            "enemy_lives": 3,
             "weapon_all": weapon_size,
             "weapon_if": [random.choice([True, False]) for _ in range(weapon_size)],
             "items": {
@@ -236,7 +258,7 @@ class LocalData:
             },
             "one_choice": {
                 "damage": 1,
-                "skip": False,
+                "skip": 0,
             },
         }
         return cast(GameData, game_data)
