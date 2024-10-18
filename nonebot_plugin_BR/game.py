@@ -74,7 +74,7 @@ class Game:
             return out_data
         if game_data["enemy_lives"] <= 0:
             out_data["is_finish"] = True
-            out_data["msg"] += f"\n{game_data['player_name']}你过关,"
+            out_data["msg"] += f"\n{game_data['player_name']} 你过关,"
             return out_data
         out_data[
             "msg"
@@ -111,7 +111,7 @@ class Game:
 
         # 判断道具生成
         if random.random() < 0.3 and game_data["round_self"]:
-            game_data, out_data, new_weapon1, new_weapon2 = await Weapon.new_weapon(
+            game_data, out_data, new_weapon1, new_weapon2 = await Weapon.new_item(
                 game_data,
                 out_data,
             )
@@ -145,6 +145,7 @@ class Game:
         ):
             game_data["round_self"] = not game_data["round_self"]
             outmsg = True
+            game_data["one_choice"]["skip"] = 0
 
         return game_data, outmsg
 

@@ -29,12 +29,19 @@ br_help = on_command(
 
 @br_help.handle()
 async def _(matcher: Matcher):
-    await matcher.finish("to do")
+    await matcher.finish(
+        """游戏指令
+- br开始/br加入/br准备 —— 开始游戏
+- br设置血量 —— 设置血量
+- 开枪 —— 开枪
+- 使用道具 xxx —— 使用道具
+- 结束游戏 —— 结束游戏"""
+    )
 
 
 br_start = on_command(
     "br开始",
-    aliases={"br加入", "br进入"},
+    aliases={"br加入", "br进入", "br准备"},
     priority=2,
     block=True,
 )
@@ -147,7 +154,7 @@ async def _(
     # 首次攻击判定
     if not game_data["is_start"]:
         logger.info("[br]开始游戏,先手为player1")
-        game_data, _, new_weapon1, new_weapon2 = await Weapon.new_weapon(game_data)
+        game_data, _, new_weapon1, new_weapon2 = await Weapon.new_item(game_data)
 
         out_msg = f"""
 道具新增:
@@ -259,29 +266,80 @@ async def _(
 ):
     logger.info("[br]正在使用道具指令")
     txt = args.extract_plain_text().strip()
-    if "刀" in txt:
-        game_data = await LocalData.read_data(session.get_id(SessionIdType.GROUP))
-        game_data = await Weapon.use_knife(game_data)
-        await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
-        await matcher.finish("刀已使用")
-    if "手铐" in txt:
-        game_data = await LocalData.read_data(session.get_id(SessionIdType.GROUP))
-        game_data = await Weapon.use_handcuffs(game_data)
-        await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
-        await matcher.finish("手铐已使用")
-    if "香烟" in txt:
-        game_data = await LocalData.read_data(session.get_id(SessionIdType.GROUP))
-        game_data = await Weapon.use_cigarettes(game_data)
-        await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
-        await matcher.finish("香烟已使用")
-    if "放大镜" in txt:
-        game_data = await LocalData.read_data(session.get_id(SessionIdType.GROUP))
-        game_data, msg = await Weapon.use_glass(game_data)
-        await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
-        if msg:
-            await matcher.finish("放大镜已使用,是实弹")
-        if not msg:
-            await matcher.finish("放大镜已使用,是空弹")
+    game_data = await LocalData.read_data(session.get_id(SessionIdType.GROUP))
+    if game_data["round_self"]:
+        if "刀" in txt:
+            if game_data["items"]["knife"] <= 0:
+                await matcher.finish("你没有刀")
+            game_data = await Weapon.use_knife(game_data)
+            game_data["items"]["knife"] -= 1
+            await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
+
+            await matcher.finish("刀已使用,你下一次攻击伤害为2(无论是否有子弹)")
+        if "手铐" in txt:
+            if game_data["items"]["handcuffs"] <= 0:
+                await matcher.finish("你没有手铐")
+            game_data = await Weapon.use_handcuffs(game_data)
+            game_data["items"]["handcuffs"] -= 1
+            await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
+            await matcher.finish("手铐已使用, 跳过对方一回合")
+        if "香烟" in txt:
+            if game_data["items"]["cigarettes"] <= 0:
+                await matcher.finish("你没有香烟")
+            game_data = await Weapon.use_cigarettes(game_data)
+            game_data["items"]["cigarettes"] -= 1
+            await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
+            await matcher.finish("香烟已使用, 血量加一")
+        if "放大镜" in txt:
+            if game_data["items"]["glass"] <= 0:
+                await matcher.finish("你没有放大镜")
+            game_data, msg = await Weapon.use_glass(game_data)
+            game_data["items"]["glass"] -= 1
+            await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
+            if msg:
+                await matcher.finish("放大镜已使用,是实弹")
+            if not msg:
+                await matcher.finish("放大镜已使用,是空弹")
+        if "饮料" in txt:
+            if game_data["items"]["drink"] <= 0:
+                await matcher.finish("你没有饮料")
+            game_data = await Weapon.use_drink(game_data)
+            game_data["items"]["drink"] -= 1
+            await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
+            await matcher.finish("饮料已使用,退弹一发")
+    else:
+        if "刀" in txt:
+            if game_data["eneny_items"]["knife"] <= 0:
+                await matcher.finish("你没有刀")
+            game_data = await Weapon.use_knife(game_data)
+            game_data["eneny_items"]["knife"] -= 1
+            await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
+
+            await matcher.finish("刀已使用")
+        if "手铐" in txt:
+            if game_data["eneny_items"]["handcuffs"] <= 0:
+                await matcher.finish("你没有手铐")
+            game_data = await Weapon.use_handcuffs(game_data)
+            game_data["eneny_items"]["handcuffs"] -= 1
+            await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
+            await matcher.finish("手铐已使用")
+        if "香烟" in txt:
+            if game_data["eneny_items"]["cigarettes"] <= 0:
+                await matcher.finish("你没有香烟")
+            game_data = await Weapon.use_cigarettes(game_data)
+            game_data["eneny_items"]["cigarettes"] -= 1
+            await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
+            await matcher.finish("香烟已使用")
+        if "放大镜" in txt:
+            if game_data["eneny_items"]["glass"] <= 0:
+                await matcher.finish("你没有放大镜")
+            game_data, msg = await Weapon.use_glass(game_data)
+            game_data["eneny_items"]["glass"] -= 1
+            await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
+            if msg:
+                await matcher.finish("放大镜已使用,是实弹")
+            if not msg:
+                await matcher.finish("放大镜已使用,是空弹")
     await matcher.finish("无效道具")
 
 

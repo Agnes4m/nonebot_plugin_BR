@@ -1,7 +1,5 @@
 import random
-from typing import Optional, cast
-
-from nonebot.log import logger
+from typing import List, Optional, cast
 
 from .model import GameData, StateDecide
 
@@ -29,6 +27,12 @@ class Weapon:
     @classmethod
     async def use_glass(cls, game_data: GameData):
         return game_data, game_data["weapon_if"][0]
+
+    @classmethod
+    async def use_drink(cls, game_data: GameData):
+        game_data["weapon_if"].pop(0)
+        game_data["weapon_all"] -= 1
+        return game_data
 
     @classmethod
     async def new_item(
@@ -71,24 +75,31 @@ class Weapon:
         out_data["weapon"] = swap_number
         out_data["msg"] += f"\n🔫剩余子弹: {game_data['weapon_all']}"
 
-        # 生成新的道具
         available_weapons = ["knife", "handcuffs", "cigarettes", "glass", "drink"]
+        weapon_indices = {
+            weapon: index for index, weapon in enumerate(available_weapons)
+        }
 
+        # 生成玩家道具
+        new_weapon1: List[int] = []
         for _ in range(swap_number):
             # 随机选择一个道具
             weapon_key = random.choice(available_weapons)
+            new_weapon1.append(weapon_indices[weapon_key])
 
             # 检查并初始化道具数量
             if weapon_key not in game_data["items"]:
                 game_data["items"][weapon_key] = 0
             game_data["items"][weapon_key] += 1
 
-        new_weapon2 = [random.randint(1, 5) for _ in range(swap_number)]
-        for index in new_weapon2:
-            weapon_key = f"weapon{index + 1}"
+        # 生成敌方道具
+        new_weapon2: List[int] = []
+        for _ in range(swap_number):
+            weapon_key = random.choice(available_weapons)
+            new_weapon2.append(weapon_indices[weapon_key])
+
             # 检查并初始化敌方道具数量
             if weapon_key not in game_data["eneny_items"]:
                 game_data["eneny_items"][weapon_key] = 0
             game_data["eneny_items"][weapon_key] += 1
-        logger.info(f"[br]道具生成,{new_weapon1}{new_weapon2}")
         return game_data, out_data, new_weapon1, new_weapon2

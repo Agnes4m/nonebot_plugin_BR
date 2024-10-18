@@ -41,11 +41,11 @@ class Format:
     async def creat_item(cls, new_weapon: list[int]):
         # 道具生成输出
         item_names: Dict[int, str] = {
-            1: "刀",
-            2: "手铐",
-            3: "香烟",
-            4: "放大镜",
-            5: "饮料",
+            0: "刀",
+            1: "手铐",
+            2: "香烟",
+            3: "放大镜",
+            4: "饮料",
         }
 
         # 生成描述
