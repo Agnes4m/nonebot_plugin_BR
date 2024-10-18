@@ -1,14 +1,14 @@
 import json
 import random
 from pathlib import Path
-from typing import Dict, cast
+from typing import cast
 
-from loguru import logger
 from nonebot_plugin_uninfo import Session
 
 from .config import config
 from .model import GameData, StateDecide
 from .utils import Format
+from .weapon import Weapon
 
 
 class Game:
@@ -57,7 +57,7 @@ class Game:
         return game_data, msg
 
     @classmethod
-    async def state(cls, game_data: GameData):
+    async def state(cls, game_data: GameData, session_uid: str):
         """当前状态结算"""
         out_data = cast(StateDecide, {})
         out_data: StateDecide = {
@@ -111,76 +111,17 @@ class Game:
 
         # 判断道具生成
         if random.random() < 0.3 and game_data["round_self"]:
-            self_weapon = sum(
-                int(value)
-                for value in game_data["items"].values()
-                if isinstance(value, (int, float))
+            game_data, out_data, new_weapon1, new_weapon2 = await Weapon.new_weapon(
+                game_data,
+                out_data,
             )
-            enemy_weapon = sum(
-                int(value)
-                for value in game_data["eneny_items"].values()
-                if isinstance(value, (int, float))
-            )
-            weapon_number_max = max(8 - self_weapon, 8 - enemy_weapon)
-            swap_number = random.randint(1, max(4, weapon_number_max))
-
-            out_data["weapon"] = swap_number
-
-            # 剩余子弹
-            out_data["msg"] += f"\n🔫剩余子弹: {game_data['weapon_all']}"
-
-            # 生成新道具
-
-            for _ in range(swap_number):
-                # 随机生成道具索引并更新玩家道具
-                await Format.generate_weapon(game_data["items"])
-                await Format.generate_weapon(game_data["eneny_items"])
-
-                # 更新输出信息
-                out_data["msg"] += await Format.format_items_message(game_data)
-                return out_data
-
-            new_weapon1 = [random.randint(1, 5) for _ in range(swap_number)]
-            for index in new_weapon1:
-                weapon_key = f"weapon{index + 1}"
-                # 检查并初始化道具数量
-                if weapon_key not in game_data["items"]:
-                    game_data["items"][weapon_key] = 0
-                game_data["items"][weapon_key] += 1
-
-            new_weapon2 = [random.randint(1, 5) for _ in range(swap_number)]
-            for index in new_weapon2:
-                weapon_key = f"weapon{index + 1}"
-                # 检查并初始化敌方道具数量
-                if weapon_key not in game_data["eneny_items"]:
-                    game_data["eneny_items"][weapon_key] = 0
-                game_data["eneny_items"][weapon_key] += 1
-            logger.info(f"[br]道具生成,{new_weapon1}{new_weapon2}")
-
-            async def creat_item(new_weapon: list[int]):  # noqa: RUF029
-                # 道具生成输出
-                item_names: Dict[int, str] = {
-                    1: "刀",
-                    2: "手铐",
-                    3: "香烟",
-                    4: "放大镜",
-                    5: "饮料",
-                }
-
-                # 生成描述
-                descriptions = []
-                for index in new_weapon:
-                    if index in item_names:
-                        descriptions.append(f"{item_names[index]}1")  # 假设数量为 1
-
-                return ",".join(descriptions)
 
             out_data[
                 "msg"
             ] += f"""
 道具新增:
-{game_data["player_name"]}: {await creat_item(new_weapon1)}
-{game_data["player_name2"]}: {await creat_item(new_weapon2)}
+{game_data["player_name"]}: {await Format.creat_item(new_weapon1)}
+{game_data["player_name2"]}: {await Format.creat_item(new_weapon2)}
 """
         out_data[
             "msg"
@@ -192,7 +133,7 @@ class Game:
         game_data, msg = await cls.rest_one_choice(game_data)
         if msg:
             out_data["msg"] += "\n道具“手铐”已使用,跳过对手回合"
-
+        await LocalData.save_data(session_uid, game_data)
         return out_data
 
     @classmethod

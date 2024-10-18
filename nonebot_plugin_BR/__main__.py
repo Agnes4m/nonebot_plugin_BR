@@ -14,6 +14,7 @@ from nonebot_plugin_waiter import prompt
 from .config import config
 from .game import Game, LocalData
 from .model import GameData, PlayerSession
+from .utils import Format
 from .weapon import Weapon
 
 game_players = cast(list[PlayerSession], [])
@@ -146,13 +147,29 @@ async def _(
     # 首次攻击判定
     if not game_data["is_start"]:
         logger.info("[br]开始游戏,先手为player1")
-        await matcher.send(f"{game_data['player_name']}发动偷袭,开始游戏")
+        game_data, _, new_weapon1, new_weapon2 = await Weapon.new_weapon(game_data)
+
+        out_msg = f"""
+道具新增:
+{game_data["player_name"]}: {await Format.creat_item(new_weapon1)}
+{game_data["player_name2"]}: {await Format.creat_item(new_weapon2)}
+"""
+        if player_id == game_data["player_id2"]:
+            out_msg += f"\n{game_data['player_name2']}发动偷袭,开始游戏"
+        else:
+            out_msg += f"{game_data['player_name']}发动偷袭,开始游戏"
+        await matcher.send(out_msg)
         if player_id == game_data["player_id2"]:
             game_data["player_id"], game_data["player_id2"] = (
                 game_data["player_id2"],
                 game_data["player_id"],
             )
+            game_data["player_name"], game_data["player_name2"] = (
+                game_data["player_name2"],
+                game_data["player_name"],
+            )
         game_data["is_start"] = True
+
         await LocalData.save_data(session_uid, game_data)
 
     # 判断是否是自己回合
@@ -190,7 +207,7 @@ async def _(
     await LocalData.save_data(session_uid, game_data)
 
     # 状态判定
-    state_data = await Game.state(game_data)
+    state_data = await Game.state(game_data, session_uid)
     out_msg = state_data["msg"]
 
     if state_data["is_finish"]:
