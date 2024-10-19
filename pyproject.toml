@@ -8,9 +8,9 @@ repository = "https://github.com/Agnes4m/nonebot_plugin_BR"
 requires-python = ">=3.9,<4.0"
 keywords = ["game", "nonebot2", "plugin"]
 dependencies = [
-    "nonebot2>=2.0.0",
+    "nonebot2>=2.2.0",
     "nonebot-plugin-uninfo>=0.4.1",
-    "nonebot_plugin_alconna>=0.52.2",
+    # "nonebot_plugin_alconna>=0.52.2",
     "nonebot_plugin_waiter>=0.8.0",
     "nonebot_plugin_session>=0.3.2",
 ]

@@ -2,7 +2,7 @@ from nonebot import require
 from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 
 require("nonebot_plugin_uninfo")
-require("nonebot_plugin_alconna")
+# require("nonebot_plugin_alconna")
 require("nonebot_plugin_waiter")
 require("nonebot_plugin_session")
 
@@ -17,7 +17,9 @@ __plugin_meta__ = PluginMetadata(
     type="application",
     config=ConfigModel,
     homepage="https://github.com/Agnes4m/nonebot_plugin_BR",
-    supported_adapters=inherit_supported_adapters("nonebot_plugin_alconna"),
+    supported_adapters=inherit_supported_adapters(
+        "nonebot_plugin_uninfo", "nonebot_plugin_session",
+    ),
     extra={
         "version": __version__,
         "author": "Agnes4m <Z735803792@163.com>",

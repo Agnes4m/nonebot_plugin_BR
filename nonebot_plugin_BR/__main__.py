@@ -175,7 +175,7 @@ async def _(
                 game_data["player_name2"],
                 game_data["player_name"],
             )
-        
+
         await LocalData.save_data(session_uid, game_data)
 
     if not game_data["is_start"]:
