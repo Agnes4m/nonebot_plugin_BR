@@ -18,7 +18,8 @@ __plugin_meta__ = PluginMetadata(
     config=ConfigModel,
     homepage="https://github.com/Agnes4m/nonebot_plugin_BR",
     supported_adapters=inherit_supported_adapters(
-        "nonebot_plugin_uninfo", "nonebot_plugin_session",
+        "nonebot_plugin_uninfo",
+        "nonebot_plugin_session",
     ),
     extra={
         "version": __version__,
