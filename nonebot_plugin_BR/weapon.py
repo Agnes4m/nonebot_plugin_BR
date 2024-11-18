@@ -72,9 +72,6 @@ class Weapon:
         # 生成新道具
         swap_number = random.randint(0, 4)
 
-        out_data["weapon"] = swap_number
-        out_data["msg"] += f"\n🔫剩余子弹: {game_data['weapon_all']}"
-
         available_weapons = ["knife", "handcuffs", "cigarettes", "glass", "drink"]
         weapon_indices = {
             weapon: index for index, weapon in enumerate(available_weapons)

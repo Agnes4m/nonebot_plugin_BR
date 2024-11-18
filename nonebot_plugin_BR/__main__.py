@@ -256,10 +256,10 @@ async def _(
     await matcher.finish(f"血量已设置为{lives}")
 
 
-uss_itme = on_command("使用", rule=game_rule)
+use_itme = on_command("使用", rule=game_rule)
 
 
-@uss_itme.handle()
+@use_itme.handle()
 async def _(
     matcher: Matcher,
     session: EventSession,
@@ -275,7 +275,6 @@ async def _(
             game_data = await Weapon.use_knife(game_data)
             game_data["items"]["knife"] -= 1
             await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
-
             await matcher.finish("刀已使用,你下一次攻击伤害为2(无论是否有子弹)")
         if "手铐" in txt:
             if game_data["items"]["handcuffs"] <= 0:
@@ -308,6 +307,8 @@ async def _(
             game_data["items"]["drink"] -= 1
             await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
             await matcher.finish("饮料已使用,退弹一发")
+        else:
+            await matcher.finish("无效道具")
     else:
         if "刀" in txt:
             if game_data["eneny_items"]["knife"] <= 0:
@@ -348,7 +349,26 @@ async def _(
             game_data["eneny_items"]["drink"] -= 1
             await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
             await matcher.finish("饮料已使用,退弹一发")
-    await matcher.finish("无效道具")
+        await matcher.finish("无效道具")
+
+
+search_game = on_command("br当前状态", rule=game_rule)
+
+
+@search_game.handle()
+async def _(
+    ev: Event,
+    matcher: Matcher,
+    session: EventSession,
+):
+    logger.info("[br]正在查询游戏状态指令")
+    player_id = ev.get_user_id()
+    session_uid = session.get_id(SessionIdType.GROUP)
+    game_data = await LocalData.read_data(session_uid)
+    if player_id != game_data["player_id"] and player_id != game_data["player_id2"]:
+        await matcher.finish("你不是游戏中的玩家")
+    out_msg = await Game.state(game_data, session_uid)
+    await matcher.finish(out_msg["msg"])
 
 
 game_end = on_command("结束游戏", rule=game_rule)

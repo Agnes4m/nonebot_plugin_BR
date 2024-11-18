@@ -3,6 +3,7 @@ import random
 from pathlib import Path
 from typing import cast
 
+from loguru import logger
 from nonebot_plugin_uninfo import Session
 
 from .config import config
@@ -57,7 +58,7 @@ class Game:
         return game_data, msg
 
     @classmethod
-    async def state(cls, game_data: GameData, session_uid: str):
+    async def state(cls, game_data: GameData, session_uid: str, read: bool = False):
         """当前状态结算"""
         out_data = cast(StateDecide, {})
         out_data: StateDecide = {
@@ -80,11 +81,11 @@ class Game:
             "msg"
         ] += f"""
 🩸当前血量: 
-{game_data["player_name"]}: {game_data["lives"]}
-{game_data["player_name2"]}: {game_data["enemy_lives"]}
+{game_data["player_name"]}({game_data['player_id']}): {game_data["lives"]}
+{game_data["player_name2"]}({game_data['player_id2']}): {game_data["enemy_lives"]}
 """
         # 判断当前枪支子弹
-        if game_data["weapon_all"] <= 0:
+        if game_data["weapon_all"] <= 0 and not read:
             new_nub = random.randint(2, 8)
             game_data["weapon_all"] = new_nub
 
@@ -110,7 +111,7 @@ class Game:
             out_data["bullet"] = False
 
         # 判断道具生成
-        if random.random() < 0.3 and game_data["round_self"]:
+        if random.random() < 0.3 and game_data["round_self"] and not read:
             game_data, out_data, new_weapon1, new_weapon2 = await Weapon.new_item(
                 game_data,
                 out_data,
@@ -119,7 +120,7 @@ class Game:
             out_data[
                 "msg"
             ] += f"""
-道具新增:
+🎁道具新增:
 {game_data["player_name"]}: {await Format.creat_item(new_weapon1)}
 {game_data["player_name2"]}: {await Format.creat_item(new_weapon2)}
 """
@@ -130,16 +131,20 @@ class Game:
 {game_data["player_name"]}:刀{game_data["items"]["knife"]}, 手铐{game_data["items"]["handcuffs"]}, 香烟{game_data["items"]["cigarettes"]}, 放大镜{game_data["items"]["glass"]}, 饮料{game_data["items"]["drink"]}
 {game_data["player_name2"]}:刀{game_data["eneny_items"]["knife"]}, 手铐{game_data["eneny_items"]["handcuffs"]}, 香烟{game_data["eneny_items"]["cigarettes"]}, 放大镜{game_data["eneny_items"]["glass"]}, 饮料{game_data["eneny_items"]["drink"]}
         """
-        game_data, msg = await cls.rest_one_choice(game_data)
-        if msg:
-            out_data["msg"] += "\n道具“手铐”已使用,跳过对手回合"
-        await LocalData.save_data(session_uid, game_data)
+        if not read:
+            game_data, msg = await cls.rest_one_choice(game_data)
+            if msg:
+                out_data["msg"] += "\n道具“手铐”已使用,跳过对手回合"
+            await LocalData.save_data(session_uid, game_data)
+        logger.info(game_data)
         return out_data
 
     @classmethod
     async def rest_one_choice(cls, game_data: GameData):
         game_data["one_choice"]["damage"] = 1
         outmsg = False
+
+        # 若手铐使用则跳过对方回合
         if (game_data["one_choice"]["skip"] == 1 and game_data["round_self"]) or (
             game_data["one_choice"]["skip"] == 2 and not game_data["round_self"]
         ):
