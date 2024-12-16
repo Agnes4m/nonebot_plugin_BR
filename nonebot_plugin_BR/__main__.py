@@ -261,13 +261,20 @@ use_itme = on_command("使用", rule=game_rule)
 
 @use_itme.handle()
 async def _(
+    event: Event,
     matcher: Matcher,
     session: EventSession,
     args: Message = CommandArg(),
 ):
     logger.info("[br]正在使用道具指令")
+    player_id = event.get_user_id()
     txt = args.extract_plain_text().strip()
     game_data = await LocalData.read_data(session.get_id(SessionIdType.GROUP))
+    # # 判断是否是自己回合
+    if game_data["round_self"] and player_id == game_data["player_id2"]:
+        await matcher.finish(f"现在是{game_data['player_name']}的回合\n请等待对手行动")
+    if not game_data["round_self"] and player_id == game_data["player_id"]:
+        await matcher.finish(f"现在是{game_data['player_name2']}的回合\n请等待对手行动")
     if game_data["round_self"]:
         if "刀" in txt:
             if game_data["items"]["knife"] <= 0:
