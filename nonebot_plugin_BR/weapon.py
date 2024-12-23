@@ -43,7 +43,7 @@ class Weapon:
         """生成新道具"""
         if out_data is None:
             out_data = cast(
-                StateDecide,
+                "StateDecide",
                 {
                     "msg": "",
                     "is_finish": False,

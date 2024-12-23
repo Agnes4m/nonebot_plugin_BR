@@ -17,7 +17,7 @@ from .model import GameData, PlayerSession
 from .utils import Format
 from .weapon import Weapon
 
-game_players = cast(list[PlayerSession], [])
+game_players = cast("list[PlayerSession]", [])
 
 br_help = on_command(
     "br help",
@@ -70,7 +70,7 @@ async def _(
                 await matcher.send("检测到在进行的游戏,游戏继续!")
                 game_players.append(
                     cast(
-                        PlayerSession,
+                        "PlayerSession",
                         {
                             "player_id": player_id,
                             "player_name": session_id.user.nick or session_id.user.name,
@@ -88,11 +88,13 @@ async def _(
 请先手发送“开枪”来执行游戏操作""",
             )
             game_data["player_id2"] = player_id
-            game_data["player_name2"] = session_id.user.nick or session_id.user.name or ""
+            game_data["player_name2"] = (
+                session_id.user.nick or session_id.user.name or ""
+            )
             await LocalData.save_data(session_uid, game_data)
             game_players.append(
                 cast(
-                    PlayerSession,
+                    "PlayerSession",
                     {
                         "player_id": player_id,
                         "player_name": session_id.user.nick or session_id.user.name,
@@ -111,7 +113,7 @@ async def _(
         )
         game_players.append(
             cast(
-                PlayerSession,
+                "PlayerSession",
                 {
                     "player_id": player_id,
                     "player_name": session_id.user.nick or session_id.user.name,
@@ -119,7 +121,7 @@ async def _(
                 },
             ),
         )
-    game_data = cast(GameData, game_data)
+    game_data = cast("GameData", game_data)
 
 
 async def game_rule(event: Event, session: EventSession):  # noqa: RUF029

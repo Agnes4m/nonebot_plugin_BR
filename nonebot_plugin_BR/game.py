@@ -60,7 +60,7 @@ class Game:
     @classmethod
     async def state(cls, game_data: GameData, session_uid: str, read: bool = False):
         """当前状态结算"""
-        out_data = cast(StateDecide, {})
+        out_data = cast("StateDecide", {})
         out_data: StateDecide = {
             "is_finish": False,
             "msg": "⭐状态结算⭐",
@@ -167,7 +167,7 @@ class Game:
         else:
             msg = f"当前子弹数: {game_data['weapon_all']}\n实弹数: {sum(game_data['weapon_if'])}"
             if_reload = False
-            
+
         game_data, out_data, new_weapon1, new_weapon2 = await Weapon.new_item(game_data)
         await LocalData.save_data(session_uid, game_data)
         return if_reload, msg
@@ -210,7 +210,7 @@ class LocalData:
                 "skip": 0,
             },
         }
-        return cast(GameData, game_data)
+        return cast("GameData", game_data)
 
     @classmethod
     async def read_data(cls, session_uid: str):
@@ -218,7 +218,7 @@ class LocalData:
             "r",
             encoding="utf-8",
         ) as f:
-            return cast(GameData, json.load(f))
+            return cast("GameData", json.load(f))
 
     @classmethod
     async def save_data(cls, session_uid: str, game_data: GameData):
