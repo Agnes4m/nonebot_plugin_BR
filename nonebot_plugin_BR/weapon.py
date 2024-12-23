@@ -66,9 +66,6 @@ class Weapon:
         weapon_number_max = max(8 - self_weapon, 8 - enemy_weapon)
         swap_number = random.randint(1, max(4, weapon_number_max))
 
-        # out_data["weapon"] = swap_number
-        # out_data["msg"] += f"\n🔫剩余子弹: {game_data['weapon_all']}"
-
         # 生成新道具
         swap_number = random.randint(0, 4)
 

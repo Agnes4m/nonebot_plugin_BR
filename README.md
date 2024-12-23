@@ -88,7 +88,7 @@ conda install nonebot_plugin_BR
 ### 游戏外
 
 - br开始| br加入 —— 开始游戏
-- br help —— 查看帮助
+- br帮助 —— 查看帮助
 
 ### 游戏中
 

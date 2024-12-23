@@ -33,7 +33,7 @@ async def _(matcher: Matcher):
         """游戏指令
 - br开始/br加入/br准备 —— 开始游戏
 - br设置血量 —— 设置血量
-- 开枪 —— 开枪
+- 开枪 —— 开枪(开始游戏后,第一次“开枪”决定先手而不是开枪)
 - 使用道具 xxx —— 使用道具
 - 结束游戏 —— 结束游戏""",
     )
@@ -88,7 +88,7 @@ async def _(
 请先手发送“开枪”来执行游戏操作""",
             )
             game_data["player_id2"] = player_id
-            game_data["player_name2"] = session_id.user.nick or session_id.user.name
+            game_data["player_name2"] = session_id.user.nick or session_id.user.name or ""
             await LocalData.save_data(session_uid, game_data)
             game_players.append(
                 cast(
@@ -177,6 +177,7 @@ async def _(
             )
 
         await LocalData.save_data(session_uid, game_data)
+        await matcher.finish("")
 
     if not game_data["is_start"]:
         game_data["is_start"] = True

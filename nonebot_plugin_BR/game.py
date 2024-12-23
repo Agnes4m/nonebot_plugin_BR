@@ -101,17 +101,7 @@ class Game:
 实弹数: {sum(game_data['weapon_if'])}
 """
             out_data["bullet"] = True
-        else:
-            out_data[
-                "msg"
-            ] += f"""
-🔫当前子弹数: {game_data['weapon_all']}
-实弹数: {sum(game_data['weapon_if'])}
-"""
-            out_data["bullet"] = False
-
-        # 判断道具生成
-        if random.random() < 0.3 and game_data["round_self"] and not read:
+            # 道具生成
             game_data, out_data, new_weapon1, new_weapon2 = await Weapon.new_item(
                 game_data,
                 out_data,
@@ -124,6 +114,15 @@ class Game:
 {game_data["player_name"]}: {await Format.creat_item(new_weapon1)}
 {game_data["player_name2"]}: {await Format.creat_item(new_weapon2)}
 """
+        else:
+            out_data[
+                "msg"
+            ] += f"""
+🔫当前子弹数: {game_data['weapon_all']}
+实弹数: {sum(game_data['weapon_if'])}
+"""
+            out_data["bullet"] = False
+
         out_data[
             "msg"
         ] += f"""
@@ -156,6 +155,7 @@ class Game:
 
     @classmethod
     async def check_weapon(cls, game_data: GameData, session_uid: str):
+        """子弹装完重新装弹操作+添加道具"""
         if game_data["weapon_all"] <= 0:
             new_nub = random.randint(2, 8)
             game_data["weapon_all"] = new_nub
@@ -167,6 +167,8 @@ class Game:
         else:
             msg = f"当前子弹数: {game_data['weapon_all']}\n实弹数: {sum(game_data['weapon_if'])}"
             if_reload = False
+            
+        game_data, out_data, new_weapon1, new_weapon2 = await Weapon.new_item(game_data)
         await LocalData.save_data(session_uid, game_data)
         return if_reload, msg
 
