@@ -178,11 +178,10 @@ async def _(
                 game_data["player_name"],
             )
 
-        await LocalData.save_data(session_uid, game_data)
-        await matcher.finish("")
-
-    if not game_data["is_start"]:
         game_data["is_start"] = True
+        await LocalData.save_data(session_uid, game_data)
+        await matcher.finish()
+
     # 判断是否是自己回合
     logger.info(game_data["round_self"])
     logger.info(player_id == game_data["player_id2"])
@@ -317,8 +316,7 @@ async def _(
             game_data["items"]["drink"] -= 1
             await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
             await matcher.finish("饮料已使用,退弹一发")
-        else:
-            await matcher.finish("无效道具")
+        await matcher.finish("无效道具")
     else:
         if "刀" in txt:
             if game_data["eneny_items"]["knife"] <= 0:
