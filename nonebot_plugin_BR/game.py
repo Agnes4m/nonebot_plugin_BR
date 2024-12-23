@@ -1,4 +1,7 @@
-import json
+try:
+    import ujson as json
+except ImportError:
+    import json
 import random
 from pathlib import Path
 from typing import cast
@@ -77,6 +80,8 @@ class Game:
             out_data["is_finish"] = True
             out_data["msg"] += f"\n{game_data['player_name']} 你过关,"
             return out_data
+        
+        # 当前血量
         out_data[
             "msg"
         ] += f"""
@@ -135,7 +140,7 @@ class Game:
             if msg:
                 out_data["msg"] += "\n道具“手铐”已使用,跳过对手回合"
             await LocalData.save_data(session_uid, game_data)
-        logger.info(game_data)
+        logger.debug(game_data)
         return out_data
 
     @classmethod

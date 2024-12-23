@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from nonebot import on_command
 from nonebot.adapters import Event, Message
@@ -13,9 +13,11 @@ from nonebot_plugin_waiter import prompt
 
 from .config import config
 from .game import Game, LocalData
-from .model import GameData, PlayerSession
 from .utils import Format
 from .weapon import Weapon
+
+if TYPE_CHECKING:
+    from .model import GameData, PlayerSession
 
 game_players = cast("list[PlayerSession]", [])
 
@@ -125,7 +127,7 @@ async def _(
 
 
 async def game_rule(event: Event, session: EventSession):  # noqa: RUF029
-    # logger.info(game_players)
+    logger.debug(game_players)
     for one in game_players:
         if (
             event.get_user_id() == one["player_id"]
@@ -183,8 +185,8 @@ async def _(
         await matcher.finish()
 
     # 判断是否是自己回合
-    logger.info(game_data["round_self"])
-    logger.info(player_id == game_data["player_id2"])
+    # logger.debug(game_data["round_self"])
+    # logger.info(player_id == game_data["player_id2"])
     if game_data["round_self"] and player_id == game_data["player_id2"]:
         await matcher.finish(f"现在是{game_data['player_name']}的回合\n请等待对手行动")
     if not game_data["round_self"] and player_id == game_data["player_id"]:
