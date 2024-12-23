@@ -80,7 +80,7 @@ class Game:
             out_data["is_finish"] = True
             out_data["msg"] += f"\n{game_data['player_name']} 你过关,"
             return out_data
-        
+
         # 当前血量
         out_data[
             "msg"
