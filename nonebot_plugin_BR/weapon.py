@@ -13,7 +13,7 @@ class Weapon:
 
     @classmethod
     async def use_handcuffs(cls, game_data: GameData) -> GameData:
-        game_data["one_choice"]["skip"] = True
+        game_data["one_choice"]["skip"] = 2 if game_data["round_self"] else 1
         return game_data
 
     @classmethod
