@@ -149,8 +149,8 @@ class Game:
         outmsg = False
 
         # 若手铐使用则跳过对方回合
-        if (game_data["one_choice"]["skip"] and game_data["round_self"]) or (
-            game_data["one_choice"]["skip"] and not game_data["round_self"]
+        if (game_data["one_choice"]["skip"] == 1 and game_data["round_self"]) or (
+            game_data["one_choice"]["skip"] == 2 and not game_data["round_self"]
         ):
             game_data["round_self"] = not game_data["round_self"]
             outmsg = True
