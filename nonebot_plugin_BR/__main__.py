@@ -83,27 +83,32 @@ async def _(
             else:
                 await matcher.finish("本群游戏玩家已满了呢.")
         else:
-            # 只有一个人
-            await matcher.send(
-                f"""玩家 {session_id.user.nick or session_id.user.name} 加入游戏,游戏开始.
-第一枪前发送“br设置血量”可修改双方的血量
-请先手发送“开枪”来执行游戏操作""",
-            )
-            game_data["player_id2"] = player_id
-            game_data["player_name2"] = (
-                session_id.user.nick or session_id.user.name or ""
-            )
-            await LocalData.save_data(session_uid, game_data)
-            game_players.append(
-                cast(
-                    "PlayerSession",
-                    {
-                        "player_id": player_id,
-                        "player_name": session_id.user.nick or session_id.user.name,
-                        "session_uid": session_uid,
-                    },
-                ),
-            )
+            if player_id not in game_data["player_id"]:
+                # 只有一个人
+                await matcher.send(
+                    f"""玩家 {session_id.user.nick or session_id.user.name} 加入游戏,游戏开始.
+                第一枪前发送“br设置血量”可修改双方的血量
+                请先手发送“开枪”来执行游戏操作""",
+                )
+                game_data["player_id2"] = player_id
+                game_data["player_name2"] = (
+                    session_id.user.nick or session_id.user.name or ""
+                )
+                await LocalData.save_data(session_uid, game_data)
+                game_players.append(
+                    cast(
+                        "PlayerSession",
+                        {
+                            "player_id": player_id,
+                            "player_name": session_id.user.nick or session_id.user.name,
+                            "session_uid": session_uid,
+                        },
+                    ),
+                )
+            else:
+                await matcher.send(
+                    f"""玩家 {session_id.user.nick or session_id.user.name} 已经加入游戏,请勿重复加入.""",
+                )
 
     else:
         # 创建新的游戏
