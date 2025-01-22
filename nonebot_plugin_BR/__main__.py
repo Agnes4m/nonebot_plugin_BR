@@ -83,7 +83,7 @@ async def _(
             else:
                 await matcher.finish("本群游戏玩家已满了呢.")
         else:
-            if player_id not in game_data["player_id"]:
+            if player_id != game_data["player_id"]:
                 # 只有一个人
                 await matcher.send(
                     f"""玩家 {session_id.user.nick or session_id.user.name} 加入游戏,游戏开始.
