@@ -9,7 +9,7 @@ require("nonebot_plugin_session")
 from . import __main__ as __main__  # noqa: E402
 from .config import ConfigModel  # noqa: E402
 
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 __plugin_meta__ = PluginMetadata(
     name="恶魔轮盘赌",
     description="与机器人交互实现恶魔轮盘赌规则",
