@@ -315,10 +315,10 @@ async def _(
         game_data, msg = await Weapon.use_glass(game_data)
         game_data[t_items]["glass"] -= 1
         await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
-    if msg:
-        await matcher.finish("放大镜已使用,是实弹")
-    if not msg:
-        await matcher.finish("放大镜已使用,是空弹")
+        if msg:
+            await matcher.finish("放大镜已使用,是实弹")
+        if not msg:
+            await matcher.finish("放大镜已使用,是空弹")
     if "饮料" in txt:
         if game_data[t_items]["drink"] <= 0:
             await matcher.finish("你没有饮料")
