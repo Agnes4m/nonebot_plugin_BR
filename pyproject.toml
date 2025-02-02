@@ -1,6 +1,6 @@
 [project]
 name = "nonebot_plugin_BR"
-version = "0.0.8"
+version = "0.0.9"
 description = "基于nonebot2框架的插件，实现交互游戏恶魔轮盘赌"
 authors = [{ name = "Agnes_Digital", email = "Z735803792@163.com" }]
 homepage = "https://github.com/Agnes4m/nonebot_plugin_BR"
@@ -23,15 +23,14 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
-
 ]
 include = [
-    "LICENSE","README.md"
+    "LICENSE", "README.md"
 ]
 readme = "README.md"
 license = { text = "MIT" }
 
- 
+
 [project.urls]
 homepage = "https://github.com/Agnes4m/nonebot_plugin_BR"
 

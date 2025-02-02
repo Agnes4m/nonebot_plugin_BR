@@ -37,7 +37,7 @@ __✨基于nonebot2框架的插件，实现交互游戏恶魔轮盘赌✨__
 
 <details open>
 <summary>[推荐] 使用 nb-cli 安装</summary>
-在 nonebot2 项目的根目录下打开命令行, 输入以下指令即可安装
+在 nonebot2 项目的根目录下打开命令行并进入虚拟环境, 输入以下指令即可安装
 
 ```bash
 nb plugin install nonebot_plugin_BR
@@ -121,7 +121,7 @@ conda install nonebot_plugin_BR
 - [x] 开枪基本逻辑
 - [x] 道具逻辑
 - [ ] 分数逻辑
-- [ ] 人机逻辑
+- [x] 人机逻辑
 
 ## 🙈 其他
 
