@@ -18,7 +18,7 @@ from .utils import Format
 from .weapon import Weapon
 
 if TYPE_CHECKING:
-    pass
+    from .model import GameData, PlayerSession
 
 game_players = cast("list[PlayerSession]", [])
 
