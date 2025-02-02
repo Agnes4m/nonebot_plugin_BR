@@ -22,7 +22,7 @@ __plugin_meta__ = PluginMetadata(
         "nonebot_plugin_session",
     ),
     extra={
-      "version": __version__,
-      "author": "Agnes4m <Z735803792@163.com>",
+        "version": __version__,
+        "author": "Agnes4m <Z735803792@163.com>",
     },
 )
