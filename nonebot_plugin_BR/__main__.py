@@ -13,6 +13,7 @@ from nonebot_plugin_waiter import prompt
 
 from .config import config
 from .game import Game, LocalData
+from .robot import ai_action
 from .utils import Format
 from .weapon import Weapon
 
@@ -34,16 +35,18 @@ async def _(matcher: Matcher):
     await matcher.finish(
         """游戏指令
 - br开始/br加入/br准备 —— 开始游戏
+- br继续 ——继续未结束的游戏（如果有）
 - br设置血量 —— 设置血量
 - 开枪 —— 开枪(开始游戏后,第一次“开枪”决定先手而不是开枪)
 - 使用道具 xxx —— 使用道具
-- 结束游戏 —— 结束游戏""",
+- 结束游戏 —— 结束游戏
+- br人机对战 —— 开始人机对战""",
     )
 
 
 br_start = on_command(
     "br开始",
-    aliases={"br加入", "br进入", "br准备"},
+    aliases={"br加入", "br进入", "br准备", "br继续"},
     priority=2,
     block=True,
 )
@@ -70,6 +73,20 @@ async def _(
             # 当前会话满人
             if player_id in [game_data["player_id"], game_data["player_id2"]]:
                 await matcher.send("检测到在进行的游戏,游戏继续!")
+                game_state = await Game.state(game_data, session_uid)
+                await matcher.send(game_state["msg"])
+                if game_data["round_self"] and player_id == game_data["player_id2"]:
+                    await matcher.finish(
+                        f"现在是{game_data['player_name']}的回合\n请行动"
+                    )
+                if not game_data["round_self"] and player_id == game_data["player_id"]:
+                    if game_data["is_robot_game"]:
+                        await matcher.send("现在是Gemini AI的回合")
+                        state_data = await Game.state(game_data, session_uid)
+                        await ai_do(
+                            game_data, state_data, matcher, session_uid, session
+                        )
+                        return
                 game_players.append(
                     cast(
                         "PlayerSession",
@@ -86,7 +103,9 @@ async def _(
             if player_id != game_data["player_id"]:
                 # 只有一个人
                 await matcher.send(
-                    f"""玩家 {session_id.user.nick or session_id.user.name} 加入游戏,游戏开始.\n第一枪前发送“br设置血量”可修改双方的血量\n请先手发送“开枪”来执行游戏操作""",
+                    f"""玩家 {session_id.user.nick or session_id.user.name} 加入游戏,游戏开始.
+第一枪前发送“br设置血量”可修改双方的血量
+请先手发送“开枪”来执行游戏操作""",
                 )
                 game_data["player_id2"] = player_id
                 game_data["player_name2"] = (
@@ -111,7 +130,7 @@ async def _(
     else:
         # 创建新的游戏
         (Path(config.br_path) / "player").mkdir(parents=True, exist_ok=True)
-        game_data = await LocalData.new_data(player_id, session_id)
+        game_data = await LocalData.new_data(player_id, session_id, False)
         await LocalData.save_data(session_uid, game_data)
         await matcher.send(
             f"玩家 {session_id.user.name} 发起了恶魔轮盘游戏!\n请等待另外一个用户加入游戏",
@@ -131,6 +150,7 @@ async def _(
 
 async def game_rule(event: Event, session: EventSession):  # noqa: RUF029
     logger.debug(game_players)
+
     for one in game_players:
         if (
             event.get_user_id() == one["player_id"]
@@ -172,7 +192,6 @@ async def _(
             out_msg += f"\n{game_data['player_name2']}发动偷袭,开始游戏"
         else:
             out_msg += f"{game_data['player_name']}发动偷袭,开始游戏"
-        await matcher.send(out_msg)
         if player_id == game_data["player_id2"]:
             game_data["player_id"], game_data["player_id2"] = (
                 game_data["player_id2"],
@@ -184,8 +203,12 @@ async def _(
             )
 
         game_data["is_start"] = True
-        await LocalData.save_data(session_uid, game_data)
-        await matcher.finish()
+        state_data = await Game.state(
+            game_data, session_uid
+        )  # 获取状态信息，返回一个字典
+        out_msg += "\n"
+        out_msg += state_data["msg"]  # 从字典中提取 "msg" 键对应的值，它是一个字符串
+        await matcher.finish(out_msg)
 
     # 判断是否是自己回合
     # logger.debug(game_data["round_self"])
@@ -194,7 +217,6 @@ async def _(
         await matcher.finish(f"现在是{game_data['player_name']}的回合\n请等待对手行动")
     if not game_data["round_self"] and player_id == game_data["player_id"]:
         await matcher.finish(f"现在是{game_data['player_name2']}的回合\n请等待对手行动")
-
     if args.extract_plain_text() not in ["1", "2"]:
         resp = await prompt("请输入攻击目标,1为对方,2为自己", timeout=120)
 
@@ -231,7 +253,96 @@ async def _(
         await matcher.finish(out_msg)
 
     await LocalData.save_data(session_uid, game_data)
-    await matcher.finish(out_msg)
+    await matcher.send(out_msg)
+    if game_data["is_robot_game"]:
+        logger.info("轮到ai操作")
+        await ai_do(game_data, state_data, matcher, session_uid, session)
+
+
+async def ai_do(game_data, state_data, matcher, session_uid, session):
+    action = ai_action(game_data)
+    if action:
+        if action.action_type == "开枪":
+            target = int(action.argument)
+            # 执行开枪逻辑
+            logger.info(f"AI 开枪，目标：{target}")
+            # 判断枪有没有子弹
+            if_reload, out_msg = await Game.check_weapon(game_data, session_uid)
+            if if_reload:
+                await matcher.send(out_msg)
+                await ai_do(game_data, state_data, matcher)
+            if target == "2":
+                game_data, out_msg = await Game.start(game_data, True)  # noqa: FBT003
+            else:
+                game_data, out_msg = await Game.start(game_data, False)  # noqa: FBT003
+            await matcher.send(out_msg)
+            game_seta = await Game.state(game_data, session_uid)
+            await matcher.send(game_seta["msg"])
+            await LocalData.save_data(session_uid, game_data)
+            # 判断下一步是谁操作
+            if game_data["round_self"]:
+                # 轮到玩家操作
+                return
+            else:
+                # 轮到ai操作
+                await ai_do(game_data, state_data, matcher)
+        elif action.action_type == "使用":
+            item = action.argument
+            # 执行使用道具逻辑
+            logger.info(f"AI 使用道具：{item}")
+            t_items = None
+            if game_data["round_self"]:
+                t_items = "items"
+            else:
+                t_items = "eneny_items"
+            txt = item
+            await matcher.send("现在是Gemini AI的回合")
+            if "knife" in txt:
+                game_data = await Weapon.use_knife(game_data)
+                game_data[t_items]["knife"] -= 1
+                await LocalData.save_data(
+                    session.get_id(SessionIdType.GROUP), game_data
+                )
+                await matcher.send("刀已使用,你下一次攻击伤害为2(无论是否有子弹)")
+            if "handcuffs" in txt:
+                game_data = await Weapon.use_handcuffs(game_data)
+                game_data[t_items]["handcuffs"] -= 1
+                await LocalData.save_data(
+                    session.get_id(SessionIdType.GROUP), game_data
+                )
+                await matcher.send("手铐已使用, 跳过对方一回合")
+                if not state_data["is_finish"]:
+                    await ai_do(game_data, state_data, matcher, session_uid, session)
+                else:
+                    return
+            elif "cigarettes" in txt:
+                game_data = await Weapon.use_cigarettes(game_data)
+                game_data[t_items]["cigarettes"] -= 1
+                await LocalData.save_data(
+                    session.get_id(SessionIdType.GROUP), game_data
+                )
+                await matcher.send("香烟已使用, 血量加1")
+            elif "glass" in txt:
+                game_data, msg = await Weapon.use_glass(game_data)
+                game_data[t_items]["glass"] -= 1
+                await LocalData.save_data(
+                    session.get_id(SessionIdType.GROUP), game_data
+                )
+                if msg:
+                    await matcher.send("放大镜已使用,是实弹")
+                if not msg:
+                    await matcher.send("放大镜已使用,是空弹")
+            elif "drink" in txt:
+                game_data = await Weapon.use_drink(game_data)
+                game_data[t_items]["drink"] -= 1
+                await LocalData.save_data(
+                    session.get_id(SessionIdType.GROUP), game_data
+                )
+                game_state = await Game.state(game_data, session_uid)
+                await matcher.send("饮料已使用,退弹一发\n" + game_state["msg"])
+            await ai_do(game_data, state_data, matcher, session_uid, session)
+    else:
+        logger.error("无法解析 AI 操作")
 
 
 swich_life = on_command("br设置血量", rule=game_rule)
@@ -283,7 +394,7 @@ async def _(
         await matcher.finish(f"现在是{game_data['player_name']}的回合\n请等待对手行动")
     if not game_data["round_self"] and player_id == game_data["player_id"]:
         await matcher.finish(f"现在是{game_data['player_name2']}的回合\n请等待对手行动")
-    t_items = ""
+    t_items = None
     if game_data["round_self"]:
         t_items = "items"
     else:
@@ -315,18 +426,18 @@ async def _(
         game_data, msg = await Weapon.use_glass(game_data)
         game_data[t_items]["glass"] -= 1
         await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
-    if msg:
-        await matcher.finish("放大镜已使用,是实弹")
-    if not msg:
-        await matcher.finish("放大镜已使用,是空弹")
+        if msg:
+            await matcher.finish("放大镜已使用,是实弹")
+        if not msg:
+            await matcher.finish("放大镜已使用,是空弹")
     if "饮料" in txt:
         if game_data[t_items]["drink"] <= 0:
             await matcher.finish("你没有饮料")
         game_data = await Weapon.use_drink(game_data)
         game_data[t_items]["drink"] -= 1
         await LocalData.save_data(session.get_id(SessionIdType.GROUP), game_data)
-        out_msg = await Game.state(game_data, session_uid)
-        await matcher.finish("饮料已使用,退弹一发\n" + out_msg["msg"])
+        game_state = await Game.state(game_data, session_uid)
+        await matcher.finish("饮料已使用,退弹一发\n" + game_state["msg"])
     await matcher.finish("无效道具")
 
 
@@ -349,22 +460,108 @@ async def _(
     await matcher.finish(out_msg["msg"])
 
 
-game_end = on_command("结束游戏", rule=game_rule)
-game_super = on_command("结束游戏", permission=SUPERUSER)
+game_end = on_command("结束游戏")
 
 
-@game_super.handle()
 @game_end.handle()
+async def _(
+    ev: Event,
+    matcher: Matcher,
+    session: EventSession,
+):
+    logger.info("[br]正在结束游戏指令")
+    player_id = ev.get_user_id()
+    session_uid = session.get_id(SessionIdType.GROUP)
+    game_data = await LocalData.read_data(session_uid)
+    if player_id != game_data["player_id"] and player_id != game_data["player_id2"]:
+        await matcher.finish("您不不是游戏玩家或无权限结束游戏")
+    # 结束游戏并清理玩家
+    game_players[:] = [one for one in game_players if one["session_uid"] != session_uid]
+    await LocalData.delete_data(session_uid)
+    await matcher.finish("恶魔轮盘已游戏结束")
+
+
+game_end_super = on_command("结束游戏", permission=SUPERUSER)
+
+
+@game_end_super.handle()
 async def _(
     matcher: Matcher,
     session: EventSession,
 ):
     logger.info("[br]正在结束游戏指令")
     # player_id = ev.get_user_id()
-    session_uid = session.get_id(SessionIdType.GROUP)
-    # game_data = await LocalData.read_data(session_uid)
-
+    # session_uid = session.get_id(SessionIdType.GROUP)
+    game_data = await LocalData.read_data(session_uid)
     # 结束游戏并清理玩家
     game_players[:] = [one for one in game_players if one["session_uid"] != session_uid]
     await LocalData.delete_data(session_uid)
     await matcher.finish("恶魔轮盘已游戏结束")
+
+
+robot_game = on_command(
+    "br人机对战",
+    aliases={"br人机", "brai"},
+    priority=2,
+    block=True,
+)
+
+
+@robot_game.handle()
+async def _(
+    ev: Event,
+    matcher: Matcher,
+    session: EventSession,
+    session_id: Session = UniSession(),
+):
+    session_uid = session.get_id(SessionIdType.GROUP)
+    player_id = ev.get_user_id()
+
+    # 创建新的游戏数据
+    (Path(config.br_path) / "player").mkdir(parents=True, exist_ok=True)
+    game_data = await LocalData.new_data(player_id, session_id, True)
+
+    # 设置 AI 玩家信息
+    game_data["player_id2"] = "gemini_ai"  # 使用特殊 ID 标识 AI 玩家
+    game_data["player_name2"] = "Gemini AI"
+
+    await LocalData.save_data(session_uid, game_data)
+    game_players.append(
+        cast(
+            "PlayerSession",
+            {
+                "player_id": player_id,
+                "player_name": session_id.user.nick or session_id.user.name,
+                "session_uid": session_uid,
+            },
+        ),
+    )
+    game_players.append(
+        cast(
+            "PlayerSession",
+            {
+                "player_id": game_data["player_id2"],
+                "player_name": game_data["player_name2"],
+                "session_uid": session_uid,
+            },
+        ),
+    )
+    await matcher.send(
+        f"玩家 {session_id.user.name} 发起了与 Gemini AI 的恶魔轮盘游戏!\n你作为先手开始游戏。",
+    )
+
+    # 触发第一回合开始
+    game_data["is_start"] = True
+    game_data, _, new_weapon1, new_weapon2 = await Weapon.new_item(game_data)
+
+    out_msg = f"""
+道具新增:
+{game_data["player_name"]}: {await Format.creat_item(new_weapon1)}
+{game_data["player_name2"]}: {await Format.creat_item(new_weapon2)}
+"""
+    state_data = await Game.state(game_data, session_uid)  # 获取状态信息，返回一个字典
+    out_msg += state_data["msg"]  # 从字典中提取 "msg" 键对应的值，它是一个字符串
+    await matcher.send(out_msg)
+    await LocalData.save_data(session_uid, game_data)
+
+    await matcher.finish()

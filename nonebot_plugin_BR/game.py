@@ -69,6 +69,7 @@ class Game:
             "msg": "⭐状态结算⭐",
             "bullet": False,
             "weapon": 0,
+            "is_robot_game": False,
         }
 
         # 判断是否死亡
@@ -181,9 +182,10 @@ class LocalData:
     """本地数据"""
 
     @classmethod
-    async def new_data(cls, game_id: str, session: Session):
+    async def new_data(cls, game_id: str, session: Session, is_robot_game: bool):
         weapon_size = random.randint(2, 8)
         game_data = {
+            "is_robot_game": is_robot_game,
             "is_start": False,
             "player_id": game_id,
             "player_id2": "",

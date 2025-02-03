@@ -50,6 +50,8 @@ class GameData(TypedDict):
     eneny_items: Items
     """敌人所有道具"""
     one_choice: Choices
+    is_robot_game: bool
+    """是否是人机局"""
 
 
 class StateDecide(TypedDict):
