@@ -1,5 +1,5 @@
 [project]
-name = "nonebot_plugin_BR"
+name = "nonebot_plugin_BR_A"
 version = "0.0.9"
 description = "基于nonebot2框架的插件，实现交互游戏恶魔轮盘赌"
 authors = [{ name = "Agnes_Digital", email = "Z735803792@163.com" }]
