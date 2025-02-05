@@ -13,6 +13,7 @@ dependencies = [
     # "nonebot_plugin_alconna>=0.52.2",
     "nonebot_plugin_waiter>=0.8.0",
     "nonebot_plugin_session>=0.3.2",
+    "google-generativeai==0.8.4" #gemini 官方 sdk
 ]
 classifiers = [
     "License :: OSI Approved :: MIT License",
