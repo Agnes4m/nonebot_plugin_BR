@@ -65,6 +65,8 @@ class StateDecide(TypedDict):
     """是否换子弹"""
     weapon: int
     """新增道具数量"""
+    is_robot_game: bool
+    """是否是人机局"""
 
 
 class PlayerSession(TypedDict):
