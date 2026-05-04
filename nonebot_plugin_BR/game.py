@@ -83,9 +83,7 @@ class Game:
             return out_data
 
         # 当前血量
-        out_data[
-            "msg"
-        ] += f"""
+        out_data["msg"] += f"""
 🩸当前血量: 
 {game_data["player_name"]}({game_data['player_id']}): {game_data["lives"]}
 {game_data["player_name2"]}({game_data['player_id2']}): {game_data["enemy_lives"]}
@@ -99,9 +97,7 @@ class Game:
             if new_nub > 2:
                 game_data["weapon_if"] += random.choices([True, False], k=new_nub - 2)
             random.shuffle(game_data["weapon_if"])
-            out_data[
-                "msg"
-            ] += f"""
+            out_data["msg"] += f"""
 🔫子弹打完,已重置子弹
 当前子弹数: {new_nub}
 实弹数: {sum(game_data['weapon_if'])}
@@ -113,25 +109,19 @@ class Game:
                 out_data,
             )
 
-            out_data[
-                "msg"
-            ] += f"""
+            out_data["msg"] += f"""
 🎁道具新增:
 {game_data["player_name"]}: {await Format.creat_item(new_weapon1)}
 {game_data["player_name2"]}: {await Format.creat_item(new_weapon2)}
 """
         else:
-            out_data[
-                "msg"
-            ] += f"""
+            out_data["msg"] += f"""
 🔫当前子弹数: {game_data['weapon_all']}
 实弹数: {sum(game_data['weapon_if'])}
 """
             out_data["bullet"] = False
 
-        out_data[
-            "msg"
-        ] += f"""
+        out_data["msg"] += f"""
 当前道具
 {game_data["player_name"]}:刀{game_data["items"]["knife"]}, 手铐{game_data["items"]["handcuffs"]}, 香烟{game_data["items"]["cigarettes"]}, 放大镜{game_data["items"]["glass"]}, 饮料{game_data["items"]["drink"]}
 {game_data["player_name2"]}:刀{game_data["eneny_items"]["knife"]}, 手铐{game_data["eneny_items"]["handcuffs"]}, 香烟{game_data["eneny_items"]["cigarettes"]}, 放大镜{game_data["eneny_items"]["glass"]}, 饮料{game_data["eneny_items"]["drink"]}
