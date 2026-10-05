@@ -6,8 +6,8 @@ require("nonebot_plugin_uninfo")
 require("nonebot_plugin_waiter")
 require("nonebot_plugin_session")
 
-from . import __main__ as __main__  # noqa: E402
-from .config import ConfigModel  # noqa: E402
+from . import __main__ as __main__
+from .config import ConfigModel
 
 __version__ = "0.0.10"
 __plugin_meta__ = PluginMetadata(

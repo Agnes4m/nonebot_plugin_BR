@@ -41,7 +41,7 @@ async def _(matcher: Matcher):
 - 开枪 —— 开枪(开始游戏后,第一次“开枪”决定先手而不是开枪)
 - 使用道具 xxx —— 使用道具
 - 结束游戏 —— 结束游戏
-- br人机对战 —— 开始人机对战""",  # noqa: RUF001
+- br人机对战 —— 开始人机对战""",
     )
 
 
@@ -139,7 +139,7 @@ async def _(
         game_data = await LocalData.new_data(
             player_id,
             session_id,
-            False,  # noqa: FBT003
+            False,
         )
         await LocalData.save_data(session_uid, game_data)
         await matcher.send(
@@ -158,7 +158,7 @@ async def _(
     game_data = cast("GameData", game_data)
 
 
-async def game_rule(event: Event, session: EventSession):  # noqa: RUF029
+async def game_rule(event: Event, session: EventSession):
     logger.debug(game_players)
 
     for one in game_players:
@@ -248,9 +248,9 @@ async def _(
     if if_reload:
         await matcher.send(out_msg)
     if obj == "2":
-        game_data, out_msg = await Game.start(game_data, True)  # noqa: FBT003
+        game_data, out_msg = await Game.start(game_data, True)
     else:
-        game_data, out_msg = await Game.start(game_data, False)  # noqa: FBT003
+        game_data, out_msg = await Game.start(game_data, False)
     await matcher.send(out_msg)
     await LocalData.save_data(session_uid, game_data)
 
@@ -282,16 +282,16 @@ async def ai_do(
         if action.action_type == "开枪":
             target = int(action.argument)
             # 执行开枪逻辑
-            logger.info(f"AI 开枪,目标：{target}")  # noqa: RUF001
+            logger.info(f"AI 开枪,目标：{target}")
             # 判断枪有没有子弹
             if_reload, out_msg = await Game.check_weapon(game_data, session_uid)
             if if_reload:
                 await matcher.send(out_msg)
                 await ai_do(game_data, state_data, matcher, session_uid, session)
             if target == "2":
-                game_data, out_msg = await Game.start(game_data, True)  # noqa: FBT003
+                game_data, out_msg = await Game.start(game_data, True)
             else:
-                game_data, out_msg = await Game.start(game_data, False)  # noqa: FBT003
+                game_data, out_msg = await Game.start(game_data, False)
             await matcher.send(out_msg)
             game_seta = await Game.state(game_data, session_uid)
             await matcher.send(game_seta["msg"])
@@ -534,7 +534,7 @@ async def _(
 
     # 创建新的游戏数据
     (Path(config.br_path) / "player").mkdir(parents=True, exist_ok=True)
-    game_data = await LocalData.new_data(player_id, session_id, True)  # noqa: FBT003
+    game_data = await LocalData.new_data(player_id, session_id, True)
 
     # 设置 AI 玩家信息
     game_data["player_id2"] = "gemini_ai"  # 使用特殊 ID 标识 AI 玩家
